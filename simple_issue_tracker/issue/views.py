@@ -94,6 +94,53 @@ def assign_issue(request):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
+@login_required
+@api_view(['GET'])
+def get_all_issues(request):
+    try:
+        issues = Issue.objects.filter(status='Opened').values()
+        return Response(issues, status=status.HTTP_200_OK)
+    except Exception as e:
+        print e
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@login_required
+@api_view(['GET'])
+def get_user_assigned_issues(request):
+    try:
+        issues = Issue.objects.filter(assigned_to=request.id, status='Opened').values()
+        return Response(issues, status=status.HTTP_200_OK)
+    except Exception as e:
+        print e
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@login_required
+@api_view(['POST'])
+def update_issue(request):
+    try:
+        data = request.data
+        issue_id = data['id']
+        user_id = request.id
+        issues = Issue.objects.filter(id=issue_id, created_by=user_id)
+        if issues:
+            issues[0].title = data['title']
+            issues[0].description = data['description']
+            issues[0].status = data['status']
+            issues[0].save()
+            msg = 'Issue updated Successfully'
+        else:
+            msg = 'Permission denied'
+        return Response(msg, status=status.HTTP_200_OK)
+    except KeyError as kerr:
+        print kerr
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print e
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
 def send_automated_email():
     subject = 'Issues assigned to you'
     assigned_to_ids = Issue.objects.exclude(Q(assigned_to=None) or Q(status='Closed')).values_list('assigned_to',
